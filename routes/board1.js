@@ -2,6 +2,8 @@ var express = require('express');
 var router = express.Router();
 var firebase = require("firebase");
 var dateFormat = require('dateformat');
+var json2xls = require('json2xls');
+var fs = require('fs');
 
 router.get('/', function(req, res, next) {
     res.redirect('boardList');
@@ -74,6 +76,22 @@ router.post('/boardSave', function(req,res,next){
 router.get('/boardDelete', function(req,res,next){
     firebase.database().ref('board/' + req.query.brdno).remove();
     res.redirect('boardList');
+});
+
+router.get('/export',function(req,res,next){
+    firebase.database().ref('board').orderByKey().once('value', function(snapshot) {
+        var rows = [];
+        snapshot.forEach(function(childSnapshot) {
+            var childData = childSnapshot.val();
+        
+            childData.brdno = childSnapshot.key;
+            childData.brddate = dateFormat(childData.brddate, "yyyy-mm-dd");
+            rows.push(childData);
+        });
+        var xls = json2xls(rows);
+        fs.writeFileSync('D://exportedExcel.xlsx', xls, 'binary');
+        res.redirect('boardList');
+    });
 });
 
 module.exports = router;
